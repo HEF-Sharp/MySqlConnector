@@ -1,8 +1,10 @@
 using System;
 using System.Data;
 using System.Data.Common;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using MySqlConnector.Diagnostics;
 using MySqlConnector.Protocol.Serialization;
 using MySqlConnector.Utilities;
 
@@ -21,10 +23,32 @@ namespace MySql.Data.MySqlClient
 		{
 			VerifyValid();
 
-			using (var cmd = new MySqlCommand("commit", Connection, this))
-				await cmd.ExecuteNonQueryAsync(ioBehavior, cancellationToken).ConfigureAwait(false);
-			Connection!.CurrentTransaction = null;
-			Connection = null;
+			Exception? e = null;
+			var operationId = _diagnosticListener.WriteTransactionCommitBefore(IsolationLevel, Connection!);
+			try
+			{
+				using (var cmd = new MySqlCommand("commit", Connection, this))
+					await cmd.ExecuteNonQueryAsync(ioBehavior, cancellationToken).ConfigureAwait(false);
+				Connection!.CurrentTransaction = null;				
+			}
+			catch (Exception ex)
+			{
+				e = ex;
+				throw;
+			}
+			finally
+			{
+				if (e != null)
+				{
+					_diagnosticListener.WriteTransactionCommitError(operationId, IsolationLevel, Connection!, e);
+				}
+				else
+				{
+					_diagnosticListener.WriteTransactionCommitAfter(operationId, IsolationLevel, Connection!);
+				}
+
+				Connection = null;
+			}
 		}
 
 		public override void Rollback() => RollbackAsync(IOBehavior.Synchronous, default).GetAwaiter().GetResult();
@@ -38,10 +62,32 @@ namespace MySql.Data.MySqlClient
 		{
 			VerifyValid();
 
-			using (var cmd = new MySqlCommand("rollback", Connection, this))
-				await cmd.ExecuteNonQueryAsync(ioBehavior, cancellationToken).ConfigureAwait(false);
-			Connection!.CurrentTransaction = null;
-			Connection = null;
+			Exception? e = null;
+			var operationId = _diagnosticListener.WriteTransactionRollbackBefore(IsolationLevel, Connection!);
+			try
+			{
+				using (var cmd = new MySqlCommand("rollback", Connection, this))
+					await cmd.ExecuteNonQueryAsync(ioBehavior, cancellationToken).ConfigureAwait(false);
+				Connection!.CurrentTransaction = null;				
+			}
+			catch (Exception ex)
+			{
+				e = ex;
+				throw;
+			}
+			finally
+			{
+				if (e != null)
+				{
+					_diagnosticListener.WriteTransactionRollbackError(operationId, IsolationLevel, Connection!, e);
+				}
+				else
+				{
+					_diagnosticListener.WriteTransactionRollbackAfter(operationId, IsolationLevel, Connection!);
+				}
+
+				Connection = null;
+			}
 		}
 
 		public void Release(string savepointName) => ExecuteSavepointAsync("release ", savepointName, IOBehavior.Synchronous, default).GetAwaiter().GetResult();
@@ -141,5 +187,7 @@ namespace MySql.Data.MySqlClient
 		private static string QuoteIdentifier(string identifier) => "`" + identifier.Replace("`", "``") + "`";
 
 		bool m_isDisposed;
+
+		static readonly DiagnosticListener _diagnosticListener = new DiagnosticListener(MySqlClientDiagnosticListenerExtensions.DiagnosticListenerName);
 	}
 }

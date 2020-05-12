@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using MySql.Data.MySqlClient;
+using MySqlConnector.Core;
 
 namespace MySqlConnector.Diagnostics
 {
@@ -34,7 +36,7 @@ namespace MySqlConnector.Diagnostics
 
 		#region Command
 		public static Guid WriteCommandBefore(this DiagnosticListener @this,
-			MySqlCommand sqlCommand, [CallerMemberName] string operation = "")
+			IReadOnlyList<IMySqlCommand> sqlCommands, [CallerMemberName] string operation = "")
 		{
 			if (@this.IsEnabled(MySqlBeforeExecuteCommand))
 			{
@@ -46,7 +48,7 @@ namespace MySqlConnector.Diagnostics
 					{
 						OperationId = operationId,
 						Operation = operation,
-						Command = sqlCommand,
+						Commands = sqlCommands,
 						Timestamp = Stopwatch.GetTimestamp()
 					});
 
@@ -57,7 +59,7 @@ namespace MySqlConnector.Diagnostics
 		}
 
 		public static void WriteCommandAfter(this DiagnosticListener @this, Guid operationId,
-			MySqlCommand sqlCommand, [CallerMemberName] string operation = "")
+			IReadOnlyList<IMySqlCommand> sqlCommands, [CallerMemberName] string operation = "")
 		{
 			if (@this.IsEnabled(MySqlAfterExecuteCommand))
 			{
@@ -67,14 +69,14 @@ namespace MySqlConnector.Diagnostics
 					{
 						OperationId = operationId,
 						Operation = operation,
-						Command = sqlCommand,
+						Commands = sqlCommands,
 						Timestamp = Stopwatch.GetTimestamp()
 					});
 			}
 		}
 
 		public static void WriteCommandError(this DiagnosticListener @this, Guid operationId,
-			MySqlCommand sqlCommand, Exception ex, [CallerMemberName] string operation = "")
+			IReadOnlyList<IMySqlCommand> sqlCommands, Exception ex, [CallerMemberName] string operation = "")
 		{
 			if (@this.IsEnabled(MySqlErrorExecuteCommand))
 			{
@@ -84,7 +86,7 @@ namespace MySqlConnector.Diagnostics
 					{
 						OperationId = operationId,
 						Operation = operation,
-						Command = sqlCommand,
+						Commands = sqlCommands,
 						Exception = ex,
 						Timestamp = Stopwatch.GetTimestamp()
 					});
@@ -275,7 +277,7 @@ namespace MySqlConnector.Diagnostics
 		}
 
 		public static Guid WriteTransactionRollbackBefore(this DiagnosticListener @this,
-			IsolationLevel isolationLevel, MySqlConnection connection, string transactionName, [CallerMemberName] string operation = "")
+			IsolationLevel isolationLevel, MySqlConnection connection, [CallerMemberName] string operation = "")
 		{
 			if (@this.IsEnabled(MySqlBeforeRollbackTransaction))
 			{
@@ -289,7 +291,6 @@ namespace MySqlConnector.Diagnostics
 						Operation = operation,
 						IsolationLevel = isolationLevel,
 						Connection = connection,
-						TransactionName = transactionName,
 						Timestamp = Stopwatch.GetTimestamp()
 					});
 
@@ -300,7 +301,7 @@ namespace MySqlConnector.Diagnostics
 		}
 
 		public static void WriteTransactionRollbackAfter(this DiagnosticListener @this, Guid operationId,
-			IsolationLevel isolationLevel, MySqlConnection connection, string transactionName, [CallerMemberName] string operation = "")
+			IsolationLevel isolationLevel, MySqlConnection connection, [CallerMemberName] string operation = "")
 		{
 			if (@this.IsEnabled(MySqlAfterRollbackTransaction))
 			{
@@ -311,15 +312,14 @@ namespace MySqlConnector.Diagnostics
 						OperationId = operationId,
 						Operation = operation,
 						IsolationLevel = isolationLevel,
-						Connection = connection,
-						TransactionName = transactionName,
+						Connection = connection,						
 						Timestamp = Stopwatch.GetTimestamp()
 					});
 			}
 		}
 
 		public static void WriteTransactionRollbackError(this DiagnosticListener @this, Guid operationId,
-			IsolationLevel isolationLevel, MySqlConnection connection, Exception ex, string transactionName, [CallerMemberName] string operation = "")
+			IsolationLevel isolationLevel, MySqlConnection connection, Exception ex, [CallerMemberName] string operation = "")
 		{
 			if (@this.IsEnabled(MySqlErrorRollbackTransaction))
 			{
@@ -330,8 +330,7 @@ namespace MySqlConnector.Diagnostics
 						OperationId = operationId,
 						Operation = operation,
 						IsolationLevel = isolationLevel,
-						Connection = connection,
-						TransactionName = transactionName,
+						Connection = connection,						
 						Exception = ex,
 						Timestamp = Stopwatch.GetTimestamp()
 					});

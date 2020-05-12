@@ -2,10 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 using MySqlConnector.Core;
+using MySqlConnector.Diagnostics;
 using MySqlConnector.Protocol.Serialization;
 using MySqlConnector.Utilities;
 
@@ -216,7 +218,7 @@ namespace MySql.Data.MySqlClient
 
 		internal async Task<int> ExecuteNonQueryAsync(IOBehavior ioBehavior, CancellationToken cancellationToken)
 		{
-			this.ResetCommandTimeout();
+			this.ResetCommandTimeout();			
 			using var reader = (MySqlDataReader) await ExecuteReaderAsync(CommandBehavior.Default, ioBehavior, cancellationToken).ConfigureAwait(false);
 			do
 			{
@@ -232,7 +234,7 @@ namespace MySql.Data.MySqlClient
 
 		internal async Task<object?> ExecuteScalarAsync(IOBehavior ioBehavior, CancellationToken cancellationToken)
 		{
-			this.ResetCommandTimeout();
+			this.ResetCommandTimeout();			
 			var hasSetResult = false;
 			object? result = null;
 			using var reader = (MySqlDataReader) await ExecuteReaderAsync(CommandBehavior.Default, ioBehavior, cancellationToken).ConfigureAwait(false);
@@ -261,7 +263,30 @@ namespace MySql.Data.MySqlClient
 				return Utility.TaskFromException<DbDataReader>(exception);
 
 			m_commandBehavior = behavior;
-			return CommandExecutor.ExecuteReaderAsync(new IMySqlCommand[] { this }, SingleCommandPayloadCreator.Instance, behavior, ioBehavior, cancellationToken);
+
+			Exception? e = null;
+			var sqlCommands = new IMySqlCommand[] { this };
+			var operationId = _diagnosticListener.WriteCommandBefore(sqlCommands);
+			try
+			{
+				return CommandExecutor.ExecuteReaderAsync(new IMySqlCommand[] { this }, SingleCommandPayloadCreator.Instance, behavior, ioBehavior, cancellationToken);
+			}
+			catch(Exception ex)
+			{
+				e = ex;
+				throw;
+			}
+			finally
+			{
+				if (e != null)
+				{
+					_diagnosticListener.WriteCommandError(operationId, sqlCommands, e);
+				}
+				else
+				{
+					_diagnosticListener.WriteCommandAfter(operationId, sqlCommands);
+				}
+			}
 		}
 
 		public MySqlCommand Clone() => new MySqlCommand(this);
@@ -342,5 +367,7 @@ namespace MySql.Data.MySqlClient
 		CommandType m_commandType;
 		CommandBehavior m_commandBehavior;
 		Action? m_cancelAction;
+
+		static readonly DiagnosticListener _diagnosticListener = new DiagnosticListener(MySqlClientDiagnosticListenerExtensions.DiagnosticListenerName);
 	}
 }

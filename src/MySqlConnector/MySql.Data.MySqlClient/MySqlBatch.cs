@@ -1,10 +1,12 @@
 using System;
 using System.Data;
 using System.Data.Common;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 using MySqlConnector.Core;
+using MySqlConnector.Diagnostics;
 using MySqlConnector.Protocol.Serialization;
 using MySqlConnector.Utilities;
 
@@ -55,7 +57,29 @@ namespace MySql.Data.MySqlClient
 			var payloadCreator = Connection!.Session.SupportsComMulti ? BatchedCommandPayloadCreator.Instance :
 				IsPrepared ? SingleCommandPayloadCreator.Instance :
 				ConcatenatedCommandPayloadCreator.Instance;
-			return CommandExecutor.ExecuteReaderAsync(BatchCommands!, payloadCreator, CommandBehavior.Default, ioBehavior, cancellationToken);
+
+			Exception? e = null;
+			var operationId = _diagnosticListener.WriteCommandBefore(BatchCommands);
+			try
+			{
+				return CommandExecutor.ExecuteReaderAsync(BatchCommands!, payloadCreator, CommandBehavior.Default, ioBehavior, cancellationToken);
+			}
+			catch (Exception ex)
+			{
+				e = ex;
+				throw;
+			}
+			finally
+			{
+				if (e != null)
+				{
+					_diagnosticListener.WriteCommandError(operationId, BatchCommands, e);
+				}
+				else
+				{
+					_diagnosticListener.WriteCommandAfter(operationId, BatchCommands);
+				}
+			}
 		}
 
 		public int ExecuteNonQuery() => ExecuteNonQueryAsync(IOBehavior.Synchronous, CancellationToken.None).GetAwaiter().GetResult();
@@ -112,7 +136,7 @@ namespace MySql.Data.MySqlClient
 				{
 				}
 			} while (await reader.NextResultAsync(ioBehavior, cancellationToken).ConfigureAwait(false));
-			return reader.RecordsAffected;
+			return reader.RecordsAffected;			
 		}
 
 		private async Task<object> ExecuteScalarAsync(IOBehavior ioBehavior, CancellationToken cancellationToken)
@@ -226,5 +250,7 @@ namespace MySql.Data.MySqlClient
 		readonly int m_commandId;
 		bool m_isDisposed;
 		Action? m_cancelAction;
+
+		static readonly DiagnosticListener _diagnosticListener = new DiagnosticListener(MySqlClientDiagnosticListenerExtensions.DiagnosticListenerName);
 	}
 }
