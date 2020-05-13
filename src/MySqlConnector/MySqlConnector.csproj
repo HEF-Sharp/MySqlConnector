@@ -7,7 +7,7 @@
     <Copyright>Copyright 2016–2020 Bradley Grainger</Copyright>
     <Authors>Bradley Grainger;Caleb Lloyd</Authors>
     <AssemblyName>MySqlConnector</AssemblyName>
-    <PackageId>MySqlConnector</PackageId>
+    <PackageId>HEF.MySqlConnector</PackageId>
     <PackageTags>mysql;mysqlconnector;async;ado.net;database;netcore</PackageTags>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Nullable>enable</Nullable>
