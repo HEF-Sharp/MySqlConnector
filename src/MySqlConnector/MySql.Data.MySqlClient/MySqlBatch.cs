@@ -59,7 +59,8 @@ namespace MySql.Data.MySqlClient
 				ConcatenatedCommandPayloadCreator.Instance;
 
 			Exception? e = null;
-			var operationId = _diagnosticListener.WriteCommandBefore(BatchCommands);
+			var sqlDiagnosticsCommands = BatchCommands.ToDiagnosticsCommands();
+			var operationId = _diagnosticListener.WriteCommandBefore(sqlDiagnosticsCommands);
 			try
 			{
 				return CommandExecutor.ExecuteReaderAsync(BatchCommands!, payloadCreator, CommandBehavior.Default, ioBehavior, cancellationToken);
@@ -73,11 +74,11 @@ namespace MySql.Data.MySqlClient
 			{
 				if (e != null)
 				{
-					_diagnosticListener.WriteCommandError(operationId, BatchCommands, e);
+					_diagnosticListener.WriteCommandError(operationId, sqlDiagnosticsCommands, e);
 				}
 				else
 				{
-					_diagnosticListener.WriteCommandAfter(operationId, BatchCommands);
+					_diagnosticListener.WriteCommandAfter(operationId, sqlDiagnosticsCommands);
 				}
 			}
 		}

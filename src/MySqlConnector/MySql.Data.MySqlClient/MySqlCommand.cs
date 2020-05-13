@@ -265,8 +265,8 @@ namespace MySql.Data.MySqlClient
 			m_commandBehavior = behavior;
 
 			Exception? e = null;
-			var sqlCommands = new IMySqlCommand[] { this };
-			var operationId = _diagnosticListener.WriteCommandBefore(sqlCommands);
+			var sqlDiagnosticsCommands = new MySqlDiagnosticsCommand[] { this.ToDiagnosticsCommand() };
+			var operationId = _diagnosticListener.WriteCommandBefore(sqlDiagnosticsCommands);
 			try
 			{
 				return CommandExecutor.ExecuteReaderAsync(new IMySqlCommand[] { this }, SingleCommandPayloadCreator.Instance, behavior, ioBehavior, cancellationToken);
@@ -280,11 +280,11 @@ namespace MySql.Data.MySqlClient
 			{
 				if (e != null)
 				{
-					_diagnosticListener.WriteCommandError(operationId, sqlCommands, e);
+					_diagnosticListener.WriteCommandError(operationId, sqlDiagnosticsCommands, e);
 				}
 				else
 				{
-					_diagnosticListener.WriteCommandAfter(operationId, sqlCommands);
+					_diagnosticListener.WriteCommandAfter(operationId, sqlDiagnosticsCommands);
 				}
 			}
 		}

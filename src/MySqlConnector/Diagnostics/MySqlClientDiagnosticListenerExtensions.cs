@@ -4,7 +4,6 @@ using System.Data;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using MySql.Data.MySqlClient;
-using MySqlConnector.Core;
 
 namespace MySqlConnector.Diagnostics
 {
@@ -36,7 +35,7 @@ namespace MySqlConnector.Diagnostics
 
 		#region Command
 		public static Guid WriteCommandBefore(this DiagnosticListener @this,
-			IReadOnlyList<IMySqlCommand> sqlCommands, [CallerMemberName] string operation = "")
+			IReadOnlyList<MySqlDiagnosticsCommand> sqlDiagnosticsCommands, [CallerMemberName] string operation = "")
 		{
 			if (@this.IsEnabled(MySqlBeforeExecuteCommand))
 			{
@@ -48,7 +47,7 @@ namespace MySqlConnector.Diagnostics
 					{
 						OperationId = operationId,
 						Operation = operation,
-						Commands = sqlCommands,
+						Commands = sqlDiagnosticsCommands,
 						Timestamp = Stopwatch.GetTimestamp()
 					});
 
@@ -59,7 +58,7 @@ namespace MySqlConnector.Diagnostics
 		}
 
 		public static void WriteCommandAfter(this DiagnosticListener @this, Guid operationId,
-			IReadOnlyList<IMySqlCommand> sqlCommands, [CallerMemberName] string operation = "")
+			IReadOnlyList<MySqlDiagnosticsCommand> sqlDiagnosticsCommands, [CallerMemberName] string operation = "")
 		{
 			if (@this.IsEnabled(MySqlAfterExecuteCommand))
 			{
@@ -69,14 +68,14 @@ namespace MySqlConnector.Diagnostics
 					{
 						OperationId = operationId,
 						Operation = operation,
-						Commands = sqlCommands,
+						Commands = sqlDiagnosticsCommands,
 						Timestamp = Stopwatch.GetTimestamp()
 					});
 			}
 		}
 
 		public static void WriteCommandError(this DiagnosticListener @this, Guid operationId,
-			IReadOnlyList<IMySqlCommand> sqlCommands, Exception ex, [CallerMemberName] string operation = "")
+			IReadOnlyList<MySqlDiagnosticsCommand> sqlDiagnosticsCommands, Exception ex, [CallerMemberName] string operation = "")
 		{
 			if (@this.IsEnabled(MySqlErrorExecuteCommand))
 			{
@@ -86,7 +85,7 @@ namespace MySqlConnector.Diagnostics
 					{
 						OperationId = operationId,
 						Operation = operation,
-						Commands = sqlCommands,
+						Commands = sqlDiagnosticsCommands,
 						Exception = ex,
 						Timestamp = Stopwatch.GetTimestamp()
 					});
