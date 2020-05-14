@@ -9,10 +9,10 @@
     <PackageReleaseNotes>https://mysqlconnector.net/overview/version-history/</PackageReleaseNotes>
     <PackageProjectUrl>https://mysqlconnector.net/</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageIconUrl>https://mysqlconnector.net/img/logo.png</PackageIconUrl>
-    <PackageIcon>logo.png</PackageIcon>
+    <!--<PackageIconUrl>https://mysqlconnector.net/img/logo.png</PackageIconUrl>
+    <PackageIcon>logo.png</PackageIcon>-->
     <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/mysql-net/MySqlConnector.git</RepositoryUrl>
+    <RepositoryUrl>https://github.com/HEF-Sharp/MySqlConnector.git</RepositoryUrl>
     <DebugType>embedded</DebugType>
     <LangVersion>8.0</LangVersion>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
